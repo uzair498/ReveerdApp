@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.ReveerdApp" parent="android:Theme.Material.Light.NoActionBar" />
+    
+<!--    <style name="Theme.App.Starting" parent="Theme.SplashScreen">-->
+
+<!--        <item name="windowSplashScreenBackground">@color/custom_blue</item>-->
+<!--        <item name="android:windowActionBar">false</item>-->
+<!--        <item name="android:windowBackground">@drawable/img_splash2</item>-->
+<!--        <item name="postSplashScreenTheme">@style/Theme.ReveerdApp</item>-->
+
+<!--    </style>-->
+</resources>
