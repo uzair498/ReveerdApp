@@ -1,5 +1,7 @@
 package com.example.reveerdapp.views
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,14 +35,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
@@ -59,14 +64,55 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavController
 import com.example.reveerdapp.R
+import com.example.reveerdapp.api.RetrofitInstance
+import com.example.reveerdapp.api.simpleLogin.LoginResponse
+import com.example.reveerdapp.api.simpleLogin.SimpleLoginDataModel
 import com.example.reveerdapp.models.OTPAction
 import com.example.reveerdapp.models.OTPState
 import com.example.reveerdapp.ui.MyColors
 import com.example.reveerdapp.ui.MyFonts
+import com.example.reveerdapp.utils.CheckRequiredPermissions
 import com.example.reveerdapp.utils.OTPInputField
+import com.example.reveerdapp.utils.ShowSettingDialog
+import com.example.reveerdapp.utils.openAppSettings
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+private const val TAG = "GeneralTag"
 
 @Composable
 fun OnboardingScreen1(navController: NavController) {
+
+    val context = LocalContext.current
+    var permissionChecked by remember { mutableStateOf(false) }
+    var permissionGranted by remember { mutableStateOf(false) }
+    var permanentlyDenied by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (!permissionChecked) {
+        CheckRequiredPermissions { granted, deniedPermanently ->
+            permissionGranted = granted
+            permissionChecked = true
+            permanentlyDenied = deniedPermanently
+            if (permissionGranted) {
+                navController.navigate("onboarding2")
+            } else if (deniedPermanently) {
+                showDialog = true
+            }
+        }
+    }
+
+    if (showDialog) {
+        ShowSettingDialog(
+            onDismiss = { showDialog = false },
+        ) {
+            showDialog = false
+            openAppSettings(context)
+        }
+    }
+
+    // TODO: Location permission Screen
     Box(
         modifier = Modifier
             .fillMaxSize(),
@@ -134,7 +180,13 @@ fun OnboardingScreen1(navController: NavController) {
 
                 ElevatedButton(
                     onClick = {
-                        navController.navigate("onboarding2")
+                        // TODO: Move on further
+//                        if (permissionGranted)
+//                        {
+//                            navController.navigate("onboarding2")
+//                        }
+                        permissionChecked = false
+
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -159,25 +211,25 @@ fun OnboardingScreen1(navController: NavController) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                TextButton(
-                    onClick = {},
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MyColors.white,
-                        contentColor = MyColors.black
-                    )
-                ) {
-                    Text(
-                        text = "Skip for now",
-                        style = TextStyle(
-                            fontFamily = MyFonts.CustomFonts,
-                            fontWeight = FontWeight.Light,
-                            fontSize = 14.sp,
-                            color = MyColors.customOffWhite
-                        )
-                    )
-                }
+//                Spacer(modifier = Modifier.height(14.dp))
+//
+//                TextButton(
+//                    onClick = {},
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = MyColors.white,
+//                        contentColor = MyColors.black
+//                    )
+//                ) {
+//                    Text(
+//                        text = "Skip for now",
+//                        style = TextStyle(
+//                            fontFamily = MyFonts.CustomFonts,
+//                            fontWeight = FontWeight.Light,
+//                            fontSize = 14.sp,
+//                            color = MyColors.customOffWhite
+//                        )
+//                    )
+//                }
             }
         }
 
@@ -187,7 +239,7 @@ fun OnboardingScreen1(navController: NavController) {
 @Composable
 fun OnboardingScreen2(navController: NavController) {
     // TODO: LOGIN Screen
-    val receivedText = remember { mutableStateOf("") }
+    val receivedEmail = remember { mutableStateOf("") }
     val receivedPassword = remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
@@ -217,8 +269,8 @@ fun OnboardingScreen2(navController: NavController) {
 
         // Email Text field
         OutlinedTextField(
-            value = receivedText.value,
-            onValueChange = { newText: String -> receivedText.value = newText },
+            value = receivedEmail.value,
+            onValueChange = { newText: String -> receivedEmail.value = newText },
             label = { Text("Email") },
 //            placeholder = { Text("Enter your email") },
             modifier = Modifier
@@ -226,6 +278,8 @@ fun OnboardingScreen2(navController: NavController) {
                 .padding(start = 24.dp, end = 24.dp, top = 24.dp),
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email)
         )
+
+//        Log.i(TAG, receivedEmail.toString())
 
         // for showing and hiding the password
         val passwordState = remember { mutableStateOf("") }
@@ -242,7 +296,6 @@ fun OnboardingScreen2(navController: NavController) {
             value = receivedPassword.value,
             onValueChange = { newPassword: String -> receivedPassword.value = newPassword },
             label = { Text("Password") },
-//            placeholder = { Text("Password") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 24.dp, end = 24.dp, top = 12.dp),
@@ -281,10 +334,39 @@ fun OnboardingScreen2(navController: NavController) {
             )
         }
 
-        // login button
+        // TODO: login button
         ElevatedButton(
             onClick = {
+
                 navController.navigate("onboarding3")
+
+                // TODO: make api call here
+//                val loginRequest = SimpleLoginDataModel(
+//                    deviceToken = "59482094tlkregslkdfjglkasdjdflg",
+//                    email = receivedEmail.toString(),
+//                    password = receivedPassword.toString()
+//                )
+//
+//                RetrofitInstance.simpleApiLoginService.login(loginRequest)
+//                    .enqueue(object : Callback<LoginResponse> {
+//                        override fun onResponse(
+//                            call: Call<LoginResponse>,
+//                            response: Response<LoginResponse>
+//                        ) {
+//                            if (response.isSuccessful) {
+//                                Log.i(TAG, "Successful reponse = " + response.body().toString())
+//                                // navigate to next screen
+//                                navController.navigate("onboarding3")
+//                            } else {
+//                                Log.i(TAG, "UnSuccessful = " + response.code().toString())
+//                            }
+//                        }
+//
+//                        override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+//                            Log.i(TAG, t.message.toString())
+//                        }
+//                    })
+
             },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
@@ -734,8 +816,7 @@ fun OnboardingScreen4(
                     number = number,
                     focusRequester = focusRequesters[index],
                     onfocusChanged = { isFocused ->
-                        if (isFocused)
-                        {
+                        if (isFocused) {
                             onAction(OTPAction.OnChangeFieldFocused(index))
                         }
                     },
@@ -753,7 +834,8 @@ fun OnboardingScreen4(
         }
 
         state.isValid?.let { isValid ->
-            Text(text = if (isValid) "OTP is valid" else "OTP is not valid",
+            Text(
+                text = if (isValid) "OTP is valid" else "OTP is not valid",
                 color = if (isValid) MyColors.locationButtonColor else Color.Red,
                 fontSize = 16.sp
 
@@ -761,6 +843,7 @@ fun OnboardingScreen4(
             )
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             modifier = Modifier
@@ -799,7 +882,7 @@ fun OnboardingScreen4(
                 .height(60.dp),
             shape = RoundedCornerShape(12.dp),
             onClick = {
-                navController.navigate("main")
+                navController.navigate("onboarding5")
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MyColors.locationButtonColor,
@@ -809,6 +892,183 @@ fun OnboardingScreen4(
         {
             Text(
                 "Verify",
+                fontSize = 16.sp,
+                fontFamily = MyFonts.CustomFonts,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun OnboardingScreen5(navController: NavController) {
+
+    val focusManager = LocalFocusManager.current
+    val view = LocalView.current
+    val insets = ViewCompat.getRootWindowInsets(view)
+    val navigationBarHeightPx =
+        insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+    val navigationBarHeightDp = with(LocalDensity.current) { navigationBarHeightPx.toDp() }
+    val receivedPassword = remember { mutableStateOf("") }
+    val confirmNewPassowrd = remember { mutableStateOf("") }
+
+    Column(
+
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = MyColors.white)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            }
+            .padding(WindowInsets.ime.asPaddingValues()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+
+        ) {
+
+//        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier
+                .padding(top = 56.dp, start = 4.dp)
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    navController.navigate("onboarding4")
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Image(
+                painterResource(id = R.drawable.ic_back),
+                contentDescription = "back button",
+                modifier = Modifier
+                    .sizeIn(minWidth = Dp.Unspecified, minHeight = Dp.Unspecified)
+            )
+
+            Text(
+                text = "Back",
+                style = TextStyle(
+                    fontFamily = MyFonts.CustomFonts,
+                    fontWeight = FontWeight.Light,
+                    fontSize = 16.sp,
+                    color = MyColors.black
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Set New Password",
+            style = TextStyle(
+                fontFamily = MyFonts.CustomFonts,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                color = MyColors.black,
+                textAlign = TextAlign.Center
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Set your new password",
+            style = TextStyle(
+                fontFamily = MyFonts.CustomFonts,
+                fontSize = 16.sp,
+                color = MyColors.customMsgColor,
+                textAlign = TextAlign.Center
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // New password field
+        val passwordVisibility = remember { mutableStateOf(false) }
+
+        val icon = if (passwordVisibility.value) {
+            ImageVector.vectorResource(id = R.drawable.ic_visibility_on)
+        } else {
+            ImageVector.vectorResource(id = R.drawable.ic_visibility_off)
+        }
+        // password text field
+        OutlinedTextField(
+            value = receivedPassword.value,
+            onValueChange = { newPassword: String -> receivedPassword.value = newPassword },
+//            label = { Text("Password") },
+            placeholder = { Text("Enter Your new password") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
+            visualTransformation = if (passwordVisibility.value) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                IconButton(onClick = {
+                    passwordVisibility.value = !passwordVisibility.value
+                }) {
+                    Icon(imageVector = icon, contentDescription = "Visibility Icon")
+                }
+            },
+        )
+
+        // Confirm new passowrd
+        OutlinedTextField(
+            value = confirmNewPassowrd.value,
+            onValueChange = { newPassword: String -> confirmNewPassowrd.value = newPassword },
+//            label = { Text("Password") },
+            placeholder = { Text("Confirm password") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
+            visualTransformation = if (passwordVisibility.value) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                IconButton(onClick = {
+                    passwordVisibility.value = !passwordVisibility.value
+                }) {
+                    Icon(imageVector = icon, contentDescription = "Visibility Icon")
+                }
+            },
+        )
+
+        // for placing the button at the bottom
+        Spacer(modifier = Modifier.weight(1f))
+
+        ElevatedButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = navigationBarHeightDp + 4.dp)
+                .height(60.dp),
+            shape = RoundedCornerShape(12.dp),
+            onClick = {
+                navController.navigate("main")
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MyColors.locationButtonColor,
+                contentColor = MyColors.white
+            )
+        )
+        {
+            Text(
+                "Save",
                 fontSize = 16.sp,
                 fontFamily = MyFonts.CustomFonts,
                 fontWeight = FontWeight.SemiBold

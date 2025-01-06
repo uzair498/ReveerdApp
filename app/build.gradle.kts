@@ -67,5 +67,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // runtime compose
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // retrofit and gson
+    implementation (libs.retrofit)
+    implementation (libs.converter.gson)
+
+    implementation(libs.material3)
 
 }
