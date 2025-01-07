@@ -1,6 +1,5 @@
 package com.example.reveerdapp.views
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,8 +63,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavController
 import com.example.reveerdapp.R
 import com.example.reveerdapp.api.RetrofitInstance
-import com.example.reveerdapp.api.simpleLogin.LoginResponse
-import com.example.reveerdapp.api.simpleLogin.SimpleLoginDataModel
+import com.example.reveerdapp.api.signUpApi.SignUpApiDataModel
 import com.example.reveerdapp.models.OTPAction
 import com.example.reveerdapp.models.OTPState
 import com.example.reveerdapp.ui.MyColors
@@ -75,6 +72,7 @@ import com.example.reveerdapp.utils.CheckRequiredPermissions
 import com.example.reveerdapp.utils.OTPInputField
 import com.example.reveerdapp.utils.ShowSettingDialog
 import com.example.reveerdapp.utils.openAppSettings
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -317,7 +315,9 @@ fun OnboardingScreen2(navController: NavController) {
 
         // forgot password button
         TextButton(
-            onClick = {},
+            onClick = {
+                navController.navigate("onboarding3")
+            },
             modifier = Modifier
                 .align(Alignment.End)
                 .padding(end = 20.dp)
@@ -338,7 +338,7 @@ fun OnboardingScreen2(navController: NavController) {
         ElevatedButton(
             onClick = {
 
-                navController.navigate("onboarding3")
+                navController.navigate("main")
 
                 // TODO: make api call here
 //                val loginRequest = SimpleLoginDataModel(
@@ -552,7 +552,9 @@ fun OnboardingScreen2(navController: NavController) {
 
             // Sign up button
             TextButton(
-                onClick = {},
+                onClick = {
+                    navController.navigate("onboarding6")
+                },
                 modifier = Modifier
 
             ) {
@@ -1074,5 +1076,238 @@ fun OnboardingScreen5(navController: NavController) {
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+@Composable
+fun OnboardingScreen6(navController: NavController) {
+    // TODO: SignUp Screen
+    val receivedFirstName = remember { mutableStateOf("") }
+    val receivedLastName = remember { mutableStateOf("") }
+    val receivedEmail = remember { mutableStateOf("") }
+    val receivedPassword = remember { mutableStateOf("") }
+    val receivedPhoneNumber = remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MyColors.white)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Spacer(modifier = Modifier.height(64.dp))
+        Text(
+            text = "Sign Up",
+            style = TextStyle(
+                fontFamily = MyFonts.CustomFonts,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+            ),
+            modifier = Modifier
+        )
+
+        // TODO: FirstName Text field
+        OutlinedTextField(
+            value = receivedFirstName.value,
+            onValueChange = { newText: String -> receivedFirstName.value = newText },
+            label = { Text("First Name") },
+            placeholder = { Text("First Name") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text)
+        )
+
+        // TODO: LastName Text Field
+        OutlinedTextField(
+            value = receivedLastName.value,
+            onValueChange = { newText: String -> receivedLastName.value = newText },
+            label = { Text("Last Name") },
+            placeholder = { Text("Last Name") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text)
+        )
+
+        // TODO: Email Text Field
+        OutlinedTextField(
+            value = receivedEmail.value,
+            onValueChange = { newText: String -> receivedEmail.value = newText },
+            label = { Text("Email") },
+            placeholder = { Text("Email") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email)
+        )
+
+        // for showing and hiding the password
+        val passwordVisibility = remember { mutableStateOf(false) }
+
+        val icon = if (passwordVisibility.value) {
+            ImageVector.vectorResource(id = R.drawable.ic_visibility_on)
+        } else {
+            ImageVector.vectorResource(id = R.drawable.ic_visibility_off)
+        }
+
+        // TODO: Password text field
+        OutlinedTextField(
+            value = receivedPassword.value,
+            onValueChange = { newPassword: String -> receivedPassword.value = newPassword },
+            label = { Text("Password") },
+            placeholder = { Text("Password") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
+            visualTransformation = if (passwordVisibility.value) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                IconButton(onClick = {
+                    passwordVisibility.value = !passwordVisibility.value
+                }) {
+                    Icon(imageVector = icon, contentDescription = "Visibility Icon")
+                }
+            },
+
+            )
+
+        // TODO: PhoneNumber Text Field
+        OutlinedTextField(
+            value = receivedPhoneNumber.value,
+            onValueChange = { newText: String -> receivedPhoneNumber.value = newText },
+            label = { Text("Phone Number") },
+            placeholder = { Text("Phone Number") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // TODO: SignUp button
+        ElevatedButton(
+            onClick = {
+                // TODO: make sign up api call here
+
+                val signUpData = SignUpApiDataModel(
+                    firstName = receivedFirstName.toString(),
+                    lastName = receivedLastName.toString(),
+                    email = receivedEmail.toString(),
+                    password = receivedPassword.toString(),
+                    phone = receivedPhoneNumber.toString(),
+                    role = "customer",
+                    deviceToken = "59482094tlkregslkdfjglkasdjdflg"
+                )
+
+
+                RetrofitInstance.signUpService.signUp(signUpData)
+                    .enqueue(object : Callback<ResponseBody> {
+                        override fun onResponse(
+                            call: Call<ResponseBody>,
+                            response: Response<ResponseBody>
+                        ) {
+                            if (response.isSuccessful) {
+                                val responseBody = response.body().toString()
+                                Log.i(TAG, "Successful reponse: $responseBody")
+                                navController.navigate("main")
+                            } else {
+                                val errorBody = response.errorBody().toString()
+                                Log.i(TAG, "Unsuccessful reponse: $errorBody")
+                            }
+                        }
+
+                        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                            Log.i(TAG, "Failed Api Call: ${t.message}")
+                        }
+
+                    })
+
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp)
+                .height(60.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MyColors.locationButtonColor,
+                contentColor = MyColors.white
+            )
+
+        ) {
+            Text(
+                text = "Sign Up",
+                style = TextStyle(
+                    fontFamily = MyFonts.CustomFonts,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            )
+        }
+
+        Text(
+            text = "OR",
+            style = TextStyle(
+                fontFamily = MyFonts.CustomFonts,
+                fontWeight = FontWeight.Light,
+                fontSize = 16.sp
+            ),
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Already have an account",
+            fontFamily = MyFonts.CustomFonts,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp,
+        )
+
+        // google login button
+        ElevatedButton(
+            onClick = {
+                navController.navigate("onboarding2")
+            },
+            elevation = ButtonDefaults.elevatedButtonElevation(
+                defaultElevation = 8.dp,
+                pressedElevation = 12.dp,
+                disabledElevation = 0.dp
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp)
+                .height(60.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MyColors.white
+            )
+        ) {
+            Text(
+                text = "Sign In",
+                style = TextStyle(
+                    fontFamily = MyFonts.CustomFonts,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = MyColors.locationButtonColor,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+        }
+
     }
 }

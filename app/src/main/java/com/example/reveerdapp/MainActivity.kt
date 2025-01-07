@@ -37,12 +37,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.reveerdapp.models.OTPAction
 import com.example.reveerdapp.models.OTPViewModel
+import com.example.reveerdapp.utils.CheckRequiredPermissions
 import com.example.reveerdapp.utils.setStatusBarColor
 import com.example.reveerdapp.views.OnboardingScreen1
 import com.example.reveerdapp.views.OnboardingScreen2
 import com.example.reveerdapp.views.OnboardingScreen3
 import com.example.reveerdapp.views.OnboardingScreen4
 import com.example.reveerdapp.views.OnboardingScreen5
+import com.example.reveerdapp.views.OnboardingScreen6
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -82,6 +84,13 @@ fun MyUI() {
 @Composable
 fun SplashScreen(navController: NavController) {
 
+    var permissionChecked by remember { mutableStateOf(false) }
+    var permissionGranted by remember { mutableStateOf(false) }
+
+    CheckRequiredPermissions { granted, _ ->
+        permissionGranted = granted
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize(),
@@ -98,9 +107,17 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(key1 = true) {
         //splash screen delay time
         delay(2000)
-        navController.navigate("onboarding1") {
-            popUpTo("splash")
-            { inclusive = true }
+        if (permissionGranted) {
+            navController.navigate("onboarding2") {
+                popUpTo("splash")
+                { inclusive = true }
+            }
+        } else{
+            navController.navigate("onboarding1") {
+                popUpTo("splash")
+                { inclusive = true }
+        }
+
         }
     }
 }
@@ -157,6 +174,7 @@ fun AppNavigator() {
                 })
         }
         composable("onboarding5") { OnboardingScreen5(navController) }
+        composable("onboarding6") { OnboardingScreen6(navController) }
         composable("main") { MainScreen() }
     }
 }
